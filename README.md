@@ -73,6 +73,7 @@ First, let's run LaMa to generate depth priors:
 cd lama
 ```
 Now, make sure to follow the [LaMa](https://github.com/saic-mdal/lama) instructions for downloading the big-lama model.  
+You can find the model on [huggingface](https://huggingface.co/smartywu/big-lama)!
 ```
 export TORCH_HOME=$(pwd) && export PYTHONPATH=$(pwd)
 python bin/predict.py refine=True model.path=$(pwd)/big-lama indir=$(pwd)/LaMa_test_images outdir=$(pwd)/output
