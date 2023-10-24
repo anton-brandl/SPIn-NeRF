@@ -17,7 +17,6 @@ numpy==1.23.1
 qtpy
 opencv-python
 scipy
-paddleseg
 albumentations
 cython
 pyyaml
