@@ -11,10 +11,11 @@ from torch import searchsorted
 
 from matplotlib import pyplot as plt
 
+_DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Misc
 img2mse = lambda x, y: torch.mean((x - y) ** 2)
 img2l1 = lambda x, y: torch.mean(torch.abs(x - y))
-mse2psnr = lambda x: -10. * torch.log(x) / torch.log(torch.Tensor([10.]))
+mse2psnr = lambda x: -10. * torch.log(x) / torch.log(torch.Tensor([10.]).to(_DEVICE))
 to8b = lambda x: (255 * np.clip(x, 0, 1)).astype(np.uint8)
 
 
@@ -247,8 +248,8 @@ class NeRF_RGB(nn.Module):
 
 # Ray helpers
 def get_rays(H, W, focal, c2w):
-    i, j = torch.meshgrid(torch.linspace(0, W - 1, W),
-                          torch.linspace(0, H - 1, H))  # pytorch's meshgrid has indexing='ij'
+    i, j = torch.meshgrid(torch.linspace(0, W - 1, W).to(_DEVICE),
+                          torch.linspace(0, H - 1, H).to(_DEVICE))  # pytorch's meshgrid has indexing='ij'
     i = i.t()
     j = j.t()
     dirs = torch.stack([(i - W * .5) / focal, -(j - H * .5) / focal, -torch.ones_like(i)], -1)
@@ -310,10 +311,10 @@ def sample_pdf(bins, weights, N_samples, det=False, pytest=False):
 
     # Take uniform samples
     if det:
-        u = torch.linspace(0., 1., steps=N_samples)
+        u = torch.linspace(0., 1., steps=N_samples).to(_DEVICE)
         u = u.expand(list(cdf.shape[:-1]) + [N_samples])
     else:
-        u = torch.rand(list(cdf.shape[:-1]) + [N_samples])
+        u = torch.rand(list(cdf.shape[:-1]) + [N_samples]).to(_DEVICE)
 
     # Pytest, overwrite u with numpy's fixed random numbers
     if pytest:
@@ -324,7 +325,7 @@ def sample_pdf(bins, weights, N_samples, det=False, pytest=False):
             u = np.broadcast_to(u, new_shape)
         else:
             u = np.random.rand(*new_shape)
-        u = torch.Tensor(u)
+        u = torch.Tensor(u).to(_DEVICE)
 
     # Invert CDF
     u = u.contiguous()
@@ -348,7 +349,7 @@ def sample_pdf(bins, weights, N_samples, det=False, pytest=False):
 
 
 def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=False, need_alpha=False,
-                detach_weights=False):
+                detach_weights=False, device='cpu'):
     """Transforms model's predictions to semantically meaningful values.
     Args:
         raw: [num_rays, num_samples along ray, 4]. Prediction from model.
@@ -364,24 +365,24 @@ def raw2outputs(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False, pytest=F
     raw2alpha = lambda raw, dists, act_fn=F.relu: 1. - torch.exp(-act_fn(raw) * dists)  # todo change relu to trunc_exp
 
     dists = z_vals[..., 1:] - z_vals[..., :-1]
-    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[..., :1].shape)], -1)  # [N_rays, N_samples]
+    dists = torch.cat([dists, torch.Tensor([1e10]).expand(dists[..., :1].shape).to(_DEVICE)], -1)  # [N_rays, N_samples]
 
     dists = dists * torch.norm(rays_d[..., None, :], dim=-1)
 
     rgb = torch.sigmoid(raw[..., :3])  # [N_rays, N_samples, 3]
     noise = 0.
     if raw_noise_std > 0.:
-        noise = torch.randn(raw[..., 3].shape) * raw_noise_std
+        noise = torch.randn(raw[..., 3].shape).to(_DEVICE) * raw_noise_std
 
         # Overwrite randomly sampled data if pytest
         if pytest:
             np.random.seed(0)
             noise = np.random.rand(*list(raw[..., 3].shape)) * raw_noise_std
-            noise = torch.Tensor(noise)
+            noise = torch.Tensor(noise).to(_DEVICE)
 
     alpha = raw2alpha(raw[..., 3] + noise, dists)  # [N_rays, N_samples]
     # weights = alpha * tf.math.cumprod(1.-alpha + 1e-10, -1, exclusive=True)
-    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)), 1. - alpha + 1e-10], -1), -1)[:, :-1]
+    weights = alpha * torch.cumprod(torch.cat([torch.ones((alpha.shape[0], 1)).to(_DEVICE), 1. - alpha + 1e-10], -1), -1)[:, :-1]
     if detach_weights:
         rgb_map = torch.sum(weights[..., None].detach() * rgb, -2)  # [N_rays, 3]
     else:
@@ -423,5 +424,3 @@ def visualize_sigma(sigma, z_vals, filename):
     plt.ylabel('sigma')
     plt.savefig(filename)
     return
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
