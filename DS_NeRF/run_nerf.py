@@ -197,14 +197,20 @@ def render_path(render_poses, hwf, chunk, render_kwargs, gt_imgs=None, savedir=N
                 masked = np.where(masks[i] != 0)
                 masked = (masked[0] // render_factor,
                           masked[1] // render_factor)
+                sh = masks[i].shape[0] // render_factor, masks[i].shape[1] // render_factor
+
+                x_min = min(masked[0].min(), sh[0]-patch_len[0])  # To avoid overshooting
                 Xs.append(random.randint(
-                    masked[0].min(),
-                    max(masked[0].max() - patch_len[0], masked[0].min())
+                    x_min,
+                    max(masked[0].max() - patch_len[0], x_min)
                 ))
+
+                y_min = min(masked[1].min(), sh[1]-patch_len[1])  # To avoid overshooting
                 Ys.append(random.randint(
-                    masked[1].min(),
-                    max(masked[1].max() - patch_len[1], masked[1].min())
+                    y_min,
+                    max(masked[1].max() - patch_len[1], y_min)
                 ))
+
                 patch = (Xs[-1], Ys[-1], patch_len[0], patch_len[1])
             else:
                 patch = None
@@ -1381,7 +1387,7 @@ def train():
                         batch_size=N_rand,
                         shuffle=True,
                         num_workers=0))
-                batch_inp = next(raysRGB_iter).to(_DEVICE)
+                batch_inp = next(raysINP_iter).to(_DEVICE)
             try:
                 batch = next(raysRGB_iter).to(_DEVICE)
             except StopIteration:
