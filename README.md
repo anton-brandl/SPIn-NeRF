@@ -53,15 +53,15 @@ where in this example, we want to use `--factor 2` for the images to use 2x down
 ```
 python imgs2poses.py <your_datadir>
 ```
-For example, for the sample `statue` dataset, the camera parameters can be obtained as `python imgs2poses.py data/statue`. Note that for this specific dataset, we have already provided the camera parameters and you can skip running COLMAP. 
+For example, for the sample `statue` dataset, the camera parameters can be obtained as `python imgs2poses.py --data_dir data/statue`. Note that for this specific dataset, we have already provided the camera parameters and you can skip running COLMAP. 
 
 ### Running an initial NeRF for getting the depths
 
 First, use the following command to render disparities from the training views. This can be done with the following: 
 
 ```
-rm -r LaMa_test_images/*
-rm -r output/label/*
+rm -r lama/LaMa_test_images/*
+rm -r lama/output/label/*
 python DS_NeRF/run_nerf.py --config DS_NeRF/configs/config.txt --render_factor 1 --prepare --i_weight 1000000000 --i_video 1000000000 --i_feat 4000 --N_iters 4001 --expname statue --datadir ./data/statue --factor 2 --N_gt 0
 ```
 After this, rendered disparities (inverse depths) are ready at `lama/LaMa_test_images`, with their corresponding labels at `lama/LaMa_test_images/label`. 

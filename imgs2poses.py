@@ -62,7 +62,6 @@ def save_poses(basedir, poses, pts3d, perm):
         pts_arr.append(pts3d[k].xyz)
         cams = [0] * poses.shape[-1]
         for ind in pts3d[k].image_ids:
-            print(ind)
             if len(cams) < ind - 1:
                 print('ERROR: the correct camera poses for current points cannot be accessed')
                 return
