@@ -118,8 +118,6 @@ def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True, pr
     except:
         depthfiles = mskfiles
 
-    if poses.shape[-1] > len(imgfiles):
-        poses = poses[:, :, :len(imgfiles)]
     if poses.shape[-1] != len(imgfiles):
         print('Mismatch between imgs {} and poses {} !!!!'.format(
             len(imgfiles), poses.shape[-1]))
@@ -143,7 +141,8 @@ def _load_data(basedir, factor=None, width=None, height=None, load_imgs=True, pr
     for i, f in enumerate(mskfiles):
         try:
             msk = imread(f)
-            msk = msk / msk.max()
+            if msk.max()>0:
+                msk = msk / msk.max()
             if len(msk.shape) > 2:
                 msk = msk[:, :, 0]
             if msk.shape != (imgs.shape[0], imgs.shape[1]):
