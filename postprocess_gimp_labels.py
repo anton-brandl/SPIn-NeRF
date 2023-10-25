@@ -1,6 +1,8 @@
 """ 
 This script post-processes label masks produced and exported using Gimp
 
+Seems like it's actually not necessary.
+
 This includes the following steps:
 1. Identify all masks in a folder. For all masks that haven't been processed yet:
 2. Threshold at 127 and set to 0 and 1 instead of 0 and 255
@@ -31,7 +33,7 @@ def create_mask(input_folder, output_folder):
         channel1 = image[:, :, 0]
 
         # Threshold the first channel at 127 to create the mask
-        mask = (channel1 > 127).astype('uint8')
+        mask = (channel1 > 127).astype('uint8') * 255
 
         # Save the mask as a new PNG image
         imageio.imwrite(output_path, mask)
